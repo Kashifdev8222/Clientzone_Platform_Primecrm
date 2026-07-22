@@ -23,7 +23,7 @@
       "value": ""
     },
     {
-      "key": "resetToken",
+      "key": "depositId",
       "value": ""
     }
   ],
@@ -352,6 +352,99 @@
               }
             ],
             "url": "{{baseUrl}}/api/v1/admin/transactions"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Deposits — Phase 2B (ClientZone + Admin)",
+      "item": [
+        {
+          "name": "4.1 Payment methods config",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{clientToken}}" }],
+            "url": "{{baseUrl}}/api/v1/clientzone/payment-methods/config"
+          }
+        },
+        {
+          "name": "4.2 Crypto supported coins",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{clientToken}}" }],
+            "url": "{{baseUrl}}/api/v1/clientzone/lead/account/transaction/crypto-pay/supported-coins"
+          }
+        },
+        {
+          "name": "4.3 Create CryptoPay deposit",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.id) pm.collectionVariables.set('depositId', j.data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{clientToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{accountId}}\",\n  \"payCurrency\": \"USDT\",\n  \"amount\": 100,\n  \"priceCurrency\": \"USD\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientzone/lead/account/transaction/crypto-pay"
+          }
+        },
+        {
+          "name": "4.4 Create Lemuxion deposit",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{clientToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{accountId}}\",\n  \"amount\": 50,\n  \"currency\": \"USD\",\n  \"description\": \"Test deposit\",\n  \"street\": \"Main Street 1\",\n  \"city\": \"Lahore\",\n  \"zip\": \"54000\",\n  \"state\": \"Punjab\",\n  \"country\": \"PK\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientzone/lead/account/transaction/lemuxion-pay"
+          }
+        },
+        {
+          "name": "4.5 Admin list deposits",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{staffToken}}" }],
+            "url": "{{baseUrl}}/api/v1/admin/deposits?status=PENDING"
+          }
+        },
+        {
+          "name": "4.6 Admin mark deposit COMPLETED",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{staffToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"COMPLETED\",\n  \"note\": \"Manual reconcile mock payment\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/admin/deposits/{{depositId}}/status"
+          }
+        },
+        {
+          "name": "4.7 Client accounts (balance check)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{clientToken}}" }],
+            "url": "{{baseUrl}}/api/v1/clientzone/lead/accounts"
           }
         }
       ]

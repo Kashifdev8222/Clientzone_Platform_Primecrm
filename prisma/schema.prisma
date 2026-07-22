@@ -25,6 +25,7 @@ model Tenant {
   transactions         Transaction[]
   staffUsers           StaffUser[]
   passwordResetTokens  PasswordResetToken[]
+  paymentMethods       PaymentMethod[]
 
   @@map("tenants")
 }
@@ -136,20 +137,44 @@ enum TransactionStatus {
   CANCELED
 }
 
+model PaymentMethod {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  type      String
+  name      String
+  isEnabled Boolean  @default(true) @map("is_enabled")
+  config    Json     @default("{}")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, type])
+  @@index([tenantId])
+  @@map("payment_methods")
+}
+
 model Transaction {
-  id               String            @id @default(uuid()) @db.Uuid
-  tenantId         String            @map("tenant_id") @db.Uuid
-  clientId         String            @map("client_id") @db.Uuid
-  accountId        String            @map("account_id") @db.Uuid
-  type             TransactionType
-  status           TransactionStatus @default(PENDING)
-  amount           Decimal           @db.Decimal(18, 2)
-  currency         String            @default("USD")
-  paymentMethod    String?           @map("payment_method")
-  externalRef      String?           @map("external_ref")
-  note             String?
-  createdAt        DateTime          @default(now()) @map("created_at")
-  updatedAt        DateTime          @updatedAt @map("updated_at")
+  id             String            @id @default(uuid()) @db.Uuid
+  tenantId       String            @map("tenant_id") @db.Uuid
+  clientId       String            @map("client_id") @db.Uuid
+  accountId      String            @map("account_id") @db.Uuid
+  type           TransactionType
+  status         TransactionStatus @default(PENDING)
+  amount         Decimal           @db.Decimal(18, 2)
+  currency       String            @default("USD")
+  paymentMethod  String?           @map("payment_method")
+  externalRef    String?           @map("external_ref")
+  note           String?
+  payCurrency    String?           @map("pay_currency")
+  priceCurrency  String?           @map("price_currency")
+  network        String?
+  redirectUrl    String?           @map("redirect_url")
+  invoiceAddress String?           @map("invoice_address")
+  meta           Json              @default("{}")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
 
   tenant  Tenant         @relation(fields: [tenantId], references: [id])
   client  Client         @relation(fields: [clientId], references: [id])

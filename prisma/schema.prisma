@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Tenant {
+  id               String   @id @default(uuid()) @db.Uuid
+  slug             String   @unique
+  name             String
+  brandId          String?  @map("brand_id")
+  businessUnitId   String?  @map("business_unit_id")
+  defaultMtGroup   String   @default("20900\\STANDART.USD") @map("default_mt_group")
+  defaultLeverage  Int      @default(100) @map("default_leverage")
+  isActive         Boolean  @default(true) @map("is_active")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  clients  Client[]
+  accounts TradingAccount[]
+  transactions Transaction[]
+
+  @@map("tenants")
+}
+
+model Client {
+  id           String    @id @default(uuid()) @db.Uuid
+  tenantId     String    @map("tenant_id") @db.Uuid
+  email        String
+  passwordHash String    @map("password_hash")
+  firstName    String    @map("first_name")
+  lastName     String    @map("last_name")
+  phone        String?
+  country      String?   @default("PK")
+  language     String?   @default("en")
+  birthDate    DateTime? @map("birth_date") @db.Date
+  username     String?
+  status       String    @default("active")
+  isDemo       Boolean   @default(false) @map("is_demo")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  tenant       Tenant           @relation(fields: [tenantId], references: [id])
+  accounts     TradingAccount[]
+  transactions Transaction[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@map("clients")
+}
+
+model TradingAccount {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  clientId      String   @map("client_id") @db.Uuid
+  name          String   @default("Main Account")
+  groupName     String   @map("group_name")
+  leverage      Int      @default(100)
+  currency      String   @default("USD")
+  balance       Decimal  @default(0) @db.Decimal(18, 2)
+  equity        Decimal  @default(0) @db.Decimal(18, 2)
+  credit        Decimal  @default(0) @db.Decimal(18, 2)
+  margin        Decimal  @default(0) @db.Decimal(18, 2)
+  freeMargin    Decimal  @default(0) @db.Decimal(18, 2)
+  isDemoAccount Boolean  @default(false) @map("is_demo_account")
+  isActive      Boolean  @default(true) @map("is_active")
+  externalLogin String?  @map("external_login")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  client       Client        @relation(fields: [clientId], references: [id])
+  transactions Transaction[]
+
+  @@index([tenantId, clientId])
+  @@map("trading_accounts")
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAW
+  ADJUSTMENT
+}
+
+enum TransactionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELED
+}
+
+model Transaction {
+  id               String            @id @default(uuid()) @db.Uuid
+  tenantId         String            @map("tenant_id") @db.Uuid
+  clientId         String            @map("client_id") @db.Uuid
+  accountId        String            @map("account_id") @db.Uuid
+  type             TransactionType
+  status           TransactionStatus @default(PENDING)
+  amount           Decimal           @db.Decimal(18, 2)
+  currency         String            @default("USD")
+  paymentMethod    String?           @map("payment_method")
+  externalRef      String?           @map("external_ref")
+  note             String?
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+
+  tenant  Tenant         @relation(fields: [tenantId], references: [id])
+  client  Client         @relation(fields: [clientId], references: [id])
+  account TradingAccount @relation(fields: [accountId], references: [id])
+
+  @@index([tenantId, clientId])
+  @@index([accountId])
+  @@map("transactions")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String?  @map("tenant_id") @db.Uuid
+  actorType  String   @map("actor_type")
+  actorId    String?  @map("actor_id")
+  action     String
+  entityType String?  @map("entity_type")
+  entityId   String?  @map("entity_id")
+  meta       Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([tenantId])
+  @@map("audit_logs")
+}

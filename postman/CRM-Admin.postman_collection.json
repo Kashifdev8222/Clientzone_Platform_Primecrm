@@ -1,0 +1,175 @@
+{
+  "info": {
+    "name": "CRM — Admin (Phase 2A + 2B)",
+    "description": "Admin / staff APIs only.\n\nBase: https://clientzone-platform-primecrm.onrender.com\n\nDefault staff (after phase2a SQL):\nemail: admin@apex.ai\npassword: Admin@12345\n\nOrder:\n1 Staff login\n2 Clients / accounts / transactions\n3 Deposits list + mark COMPLETED",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://clientzone-platform-primecrm.onrender.com" },
+    { "key": "staffToken", "value": "" },
+    { "key": "depositId", "value": "" },
+    { "key": "clientId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Health",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Staff Auth (Phase 2A)",
+      "item": [
+        {
+          "name": "1.1 Staff login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.accessToken) pm.collectionVariables.set('staffToken', j.data.accessToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@apex.ai\",\n  \"password\": \"Admin@12345\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/admin/auth/login"
+          }
+        },
+        {
+          "name": "1.2 Me",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{staffToken}}" }],
+            "url": "{{baseUrl}}/api/v1/admin/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Clients & Accounts (Phase 2A)",
+      "item": [
+        {
+          "name": "2.1 List clients",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.[0]?.id) pm.collectionVariables.set('clientId', j.data[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{staffToken}}" }],
+            "url": "{{baseUrl}}/api/v1/admin/clients"
+          }
+        },
+        {
+          "name": "2.2 Get client by id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{staffToken}}" }],
+            "url": "{{baseUrl}}/api/v1/admin/clients/{{clientId}}"
+          }
+        },
+        {
+          "name": "2.3 List accounts",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{staffToken}}" }],
+            "url": "{{baseUrl}}/api/v1/admin/accounts"
+          }
+        },
+        {
+          "name": "2.4 List transactions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{staffToken}}" }],
+            "url": "{{baseUrl}}/api/v1/admin/transactions"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Deposits (Phase 2B)",
+      "item": [
+        {
+          "name": "3.1 List pending deposits",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.[0]?.id) pm.collectionVariables.set('depositId', j.data[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{staffToken}}" }],
+            "url": "{{baseUrl}}/api/v1/admin/deposits?status=PENDING"
+          }
+        },
+        {
+          "name": "3.2 List all deposits",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{staffToken}}" }],
+            "url": "{{baseUrl}}/api/v1/admin/deposits"
+          }
+        },
+        {
+          "name": "3.3 Mark deposit COMPLETED",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{staffToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"COMPLETED\",\n  \"note\": \"Manual reconcile mock payment\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/admin/deposits/{{depositId}}/status",
+            "description": "depositId is auto-set from 3.1, or paste id from ClientZone crypto deposit response"
+          }
+        },
+        {
+          "name": "3.4 Mark deposit FAILED",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{staffToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"FAILED\",\n  \"note\": \"Payment not received\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/admin/deposits/{{depositId}}/status"
+          }
+        }
+      ]
+    }
+  ]
+}

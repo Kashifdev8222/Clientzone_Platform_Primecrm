@@ -6,6 +6,7 @@ import {
   AdminPaymentsController,
   PaymentsWebhookController,
 } from './admin-payments.controller';
+import { MockPayController } from './mock-pay.controller';
 
 @Module({
   imports: [AuthModule],
@@ -13,6 +14,7 @@ import {
     ClientPaymentsController,
     AdminPaymentsController,
     PaymentsWebhookController,
+    MockPayController,
   ],
   providers: [PaymentsService],
   exports: [PaymentsService],

@@ -30,21 +30,26 @@ model Tenant {
 }
 
 model Client {
-  id           String    @id @default(uuid()) @db.Uuid
-  tenantId     String    @map("tenant_id") @db.Uuid
-  email        String
-  passwordHash String    @map("password_hash")
-  firstName    String    @map("first_name")
-  lastName     String    @map("last_name")
-  phone        String?
-  country      String?   @default("PK")
-  language     String?   @default("en")
-  birthDate    DateTime? @map("birth_date") @db.Date
-  username     String?
-  status       String    @default("active")
-  isDemo       Boolean   @default(false) @map("is_demo")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  id             String    @id @default(uuid()) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  email          String
+  passwordHash   String    @map("password_hash")
+  firstName      String    @map("first_name")
+  lastName       String    @map("last_name")
+  phone          String?
+  country        String?   @default("PK")
+  language       String?   @default("bm")
+  customFields   String?   @default("") @map("custom_fields")
+  username       String?
+  birthDate      DateTime? @map("birth_date") @db.Date
+  status         String    @default("active")
+  isDemo         Boolean   @default(false) @map("is_demo")
+  tags           Json      @default("[]")
+  notes          Json      @default("[]")
+  brandId        String?   @map("brand_id")
+  businessUnitId String?   @map("business_unit_id")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
   tenant       Tenant           @relation(fields: [tenantId], references: [id])
   accounts     TradingAccount[]

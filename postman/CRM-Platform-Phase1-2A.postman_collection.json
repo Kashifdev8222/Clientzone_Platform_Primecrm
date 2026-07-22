@@ -1,0 +1,360 @@
+{
+  "info": {
+    "_postman_id": "crm-platform-phase1-2a",
+    "name": "CRM Platform — Phase 1 + 2A (ClientZone + Admin)",
+    "description": "Single collection for ClientZone and Admin APIs.\n\nBase: https://clientzone-platform-primecrm.onrender.com\n\nOrder:\n1) ClientZone Register → Login → Accounts → Transactions\n2) ClientZone Forgot/Reset/Change password\n3) Admin Staff Login → Me → Clients → Accounts → Transactions\n\nDefault admin (after phase2a SQL): admin@apex.ai / Admin@12345",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://clientzone-platform-primecrm.onrender.com"
+    },
+    {
+      "key": "clientToken",
+      "value": ""
+    },
+    {
+      "key": "staffToken",
+      "value": ""
+    },
+    {
+      "key": "accountId",
+      "value": ""
+    },
+    {
+      "key": "resetToken",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Health",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/health",
+            "description": "Expect status ok"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. ClientZone — Phase 1",
+      "item": [
+        {
+          "name": "1.1 Register lead",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Demo\",\n  \"lastName\": \"Client\",\n  \"email\": \"demo.client@apex.test\",\n  \"phone\": \"+923001112233\",\n  \"country\": \"PK\",\n  \"language\": \"bm\",\n  \"customFields\": \"\",\n  \"username\": \"demo.client@apex.test\",\n  \"birthDate\": \"1995-01-15\",\n  \"password\": \"secret123\",\n  \"accounts\": [\n    {\n      \"groupName\": \"20900\\\\STANDART.USD\",\n      \"leverage\": 100,\n      \"isDemoAccount\": false\n    }\n  ],\n  \"brandId\": \"360e85c5-b81b-474d-87a2-a33fae141eca\",\n  \"businessUnitId\": \"ea8b30a5-57c4-4fe9-8fc1-b9260d9f93c1\",\n  \"isDemoAccount\": false,\n  \"tags\": [\n    { \"id\": \"bf05cca4-0ac8-4d59-aa1b-e07a5b31c969\" }\n  ],\n  \"notes\": [\n    { \"text\": \"ClientPortal-Website\" }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientzone/leads",
+            "description": "PrimeCRM-compatible register body. No Bearer required (public self-register like portal)."
+          }
+        },
+        {
+          "name": "1.2 Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j && j.data && j.data.accessToken) {",
+                  "  pm.collectionVariables.set('clientToken', j.data.accessToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"demo.client@apex.test\",\n  \"password\": \"secret123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientzone/auth/login",
+            "description": "Saves clientToken automatically"
+          }
+        },
+        {
+          "name": "1.3 List accounts",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j && j.data && j.data[0] && j.data[0].id) {",
+                  "  pm.collectionVariables.set('accountId', j.data[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/clientzone/lead/accounts",
+            "description": "Saves accountId automatically"
+          }
+        },
+        {
+          "name": "1.4 Rename account",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"My Trading Account\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientzone/lead/accounts/{{accountId}}/name"
+          }
+        },
+        {
+          "name": "1.5 List transactions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/clientzone/lead/account/transactions",
+            "description": "Empty until deposits/withdraws exist"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. ClientZone — Phase 2A Passwords",
+      "item": [
+        {
+          "name": "2.1 Forgot password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j && j.data && j.data.resetToken) {",
+                  "  pm.collectionVariables.set('resetToken', j.data.resetToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"demo.client@apex.test\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientzone/auth/forgotpass",
+            "description": "Needs EXPOSE_RESET_TOKEN=true on Render to return resetToken in response"
+          }
+        },
+        {
+          "name": "2.2 Reset password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{resetToken}}\",\n  \"password\": \"secret456\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientzone/auth/resetpass"
+          }
+        },
+        {
+          "name": "2.3 Login after reset",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j && j.data && j.data.accessToken) {",
+                  "  pm.collectionVariables.set('clientToken', j.data.accessToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"demo.client@apex.test\",\n  \"password\": \"secret456\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientzone/auth/login"
+          }
+        },
+        {
+          "name": "2.4 Change password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"secret456\",\n  \"newPassword\": \"secret123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientzone/auth/changepass",
+            "description": "Changes back to secret123 for easy retesting"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Admin — Phase 2A",
+      "item": [
+        {
+          "name": "3.1 Staff login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j && j.data && j.data.accessToken) {",
+                  "  pm.collectionVariables.set('staffToken', j.data.accessToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@apex.ai\",\n  \"password\": \"Admin@12345\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/admin/auth/login",
+            "description": "Requires phase2a-admin-staff.sql already run in Supabase"
+          }
+        },
+        {
+          "name": "3.2 Me",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{staffToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/me"
+          }
+        },
+        {
+          "name": "3.3 List clients",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{staffToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/clients"
+          }
+        },
+        {
+          "name": "3.4 List accounts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{staffToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/accounts"
+          }
+        },
+        {
+          "name": "3.5 List transactions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{staffToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/transactions"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -42,6 +42,24 @@ export class AuthService {
       });
     }
 
+    // Optional: if brandId/businessUnitId sent, must match tenant (PrimeCRM parity)
+    if (dto.brandId && tenant.brandId && dto.brandId !== tenant.brandId) {
+      throw new BadRequestException({
+        status: 'error',
+        message: 'brandId does not match this tenant',
+      });
+    }
+    if (
+      dto.businessUnitId &&
+      tenant.businessUnitId &&
+      dto.businessUnitId !== tenant.businessUnitId
+    ) {
+      throw new BadRequestException({
+        status: 'error',
+        message: 'businessUnitId does not match this tenant',
+      });
+    }
+
     let firstName = (dto.firstName || '').trim();
     let lastName = (dto.lastName || '').trim();
     if (dto.fullName?.trim()) {
@@ -68,6 +86,31 @@ export class AuthService {
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
+    const birthDate = this.parseBirthDate(dto.birthDate);
+    const isDemo =
+      dto.isDemoAccount === true ||
+      dto.accounts?.some((a) => a.isDemoAccount === true) === true;
+
+    const customFields =
+      typeof dto.customFields === 'string'
+        ? dto.customFields
+        : dto.customFields
+          ? JSON.stringify(dto.customFields)
+          : '';
+
+    const tags = (dto.tags || []).map((t) => ({ id: t.id || null }));
+    const notes = (dto.notes || []).map((n) => ({ text: n.text || '' }));
+
+    const accountSpecs =
+      dto.accounts && dto.accounts.length > 0
+        ? dto.accounts
+        : [
+            {
+              groupName: tenant.defaultMtGroup,
+              leverage: tenant.defaultLeverage,
+              isDemoAccount: isDemo,
+            },
+          ];
 
     const result = await this.prisma.$transaction(async (tx) => {
       const client = await tx.client.create({
@@ -79,30 +122,50 @@ export class AuthService {
           lastName,
           phone: dto.phone,
           country: dto.country || 'PK',
-          username: email,
-          birthDate: dto.birthDate ? new Date(dto.birthDate) : null,
-          isDemo: false,
+          language: dto.language || 'bm',
+          customFields,
+          username: (dto.username || email).trim(),
+          birthDate,
+          isDemo: !!isDemo,
+          tags,
+          notes,
+          brandId: dto.brandId || tenant.brandId,
+          businessUnitId: dto.businessUnitId || tenant.businessUnitId,
         },
       });
 
-      const account = await tx.tradingAccount.create({
-        data: {
-          tenantId: tenant.id,
-          clientId: client.id,
-          name: 'Main Account',
-          groupName: tenant.defaultMtGroup,
-          leverage: tenant.defaultLeverage,
-          currency: 'USD',
-          balance: new Decimal(0),
-          equity: new Decimal(0),
-          freeMargin: new Decimal(0),
-          isDemoAccount: false,
-        },
-      });
+      const accounts: {
+        id: string;
+        name: string;
+        groupName: string;
+        leverage: number;
+        isDemoAccount: boolean;
+        balance: unknown;
+        currency: string;
+      }[] = [];
+      for (let i = 0; i < accountSpecs.length; i++) {
+        const spec = accountSpecs[i];
+        const account = await tx.tradingAccount.create({
+          data: {
+            tenantId: tenant.id,
+            clientId: client.id,
+            name: accountSpecs.length === 1 ? 'Main Account' : `Account ${i + 1}`,
+            groupName: spec.groupName || tenant.defaultMtGroup,
+            leverage: spec.leverage ?? tenant.defaultLeverage,
+            currency: 'USD',
+            balance: new Decimal(0),
+            equity: new Decimal(0),
+            freeMargin: new Decimal(0),
+            isDemoAccount: spec.isDemoAccount ?? !!isDemo,
+          },
+        });
+        accounts.push(account);
+      }
 
-      return { client, account };
+      return { client, accounts };
     });
 
+    // Shape closer to PrimeCRM + portal wrapper { status, data }
     return {
       status: 'success',
       data: {
@@ -112,11 +175,47 @@ export class AuthService {
         firstName: result.client.firstName,
         lastName: result.client.lastName,
         phone: result.client.phone,
-        accountId: result.account.id,
-        brandId: tenant.brandId,
-        businessUnitId: tenant.businessUnitId,
+        country: result.client.country,
+        language: result.client.language,
+        username: result.client.username,
+        birthDate: result.client.birthDate,
+        isDemoAccount: result.client.isDemo,
+        brandId: result.client.brandId,
+        businessUnitId: result.client.businessUnitId,
+        tags: result.client.tags,
+        notes: result.client.notes,
+        accounts: result.accounts.map((a) => ({
+          id: a.id,
+          name: a.name,
+          groupName: a.groupName,
+          leverage: a.leverage,
+          isDemoAccount: a.isDemoAccount,
+          balance: Number(a.balance),
+          currency: a.currency,
+        })),
+        accountId: result.accounts[0]?.id ?? null,
       },
     };
+  }
+
+  /** Accept ISO or PrimeCRM odd formats like 2023-12-12:12:12Z */
+  private parseBirthDate(raw?: string): Date | null {
+    if (!raw || !String(raw).trim()) return null;
+    let s = String(raw).trim();
+    // "2023-12-12:12:12Z" → "2023-12-12T12:12:00Z"
+    if (/^\d{4}-\d{2}-\d{2}:\d{2}:\d{2}/.test(s)) {
+      s = s.replace(/^(\d{4}-\d{2}-\d{2}):/, '$1T') + (s.endsWith('Z') ? '' : '');
+      if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}Z$/.test(s)) {
+        s = s.replace(/Z$/, ':00Z');
+      }
+    }
+    const d = new Date(s);
+    if (Number.isNaN(d.getTime())) {
+      // date-only
+      const d2 = new Date(s.slice(0, 10));
+      return Number.isNaN(d2.getTime()) ? null : d2;
+    }
+    return d;
   }
 
   async login(dto: LoginDto) {

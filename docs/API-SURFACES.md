@@ -40,6 +40,12 @@ Admin panel   ──► /api/v1/admin/*       ──► NestJS ──► Supabas
 | GET | `/clientzone/lead/account/transaction/crypto-pay/supported-coins` | Bearer client |
 | POST | `/clientzone/lead/account/transaction/crypto-pay` | Bearer client |
 | POST | `/clientzone/lead/account/transaction/lemuxion-pay` | Bearer client |
+| POST | `/clientzone/lead/account/transactions` | Bearer client (withdraw create) |
+| PATCH | `/clientzone/lead/account/transactions/:id` | Bearer client (withdraw cancel) |
+| GET | `/clientzone/transaction-source/get` | Bearer client |
+| POST | `/clientzone/transaction-source/create` | Bearer client |
+| PATCH | `/clientzone/transaction-source/edit/:id` | Bearer client |
+| DELETE | `/clientzone/transaction-source/delete/:id` | Bearer client |
 
 ### Admin
 
@@ -53,13 +59,15 @@ Admin panel   ──► /api/v1/admin/*       ──► NestJS ──► Supabas
 | GET | `/admin/transactions` | Bearer staff |
 | GET | `/admin/deposits` | Bearer staff |
 | PATCH | `/admin/deposits/:id/status` | Bearer staff |
+| GET | `/admin/withdrawals` | Bearer staff |
+| PATCH | `/admin/withdrawals/:id/status` | Bearer staff |
 
 ## Build order (full CRM)
 
 1. Auth (client + admin) ✅
 2. Accounts / transactions read ✅
-3. Deposits + mock reconcile ✅ (real PSP later)
-4. Withdraw + sources (client request, admin approve)
+3. Deposits + mock reconcile ✅
+4. Withdraw + sources ✅
 5. KYC documents (client upload, admin review)
 6. Tickets + meetings (client + admin desk)
 7. Admin panel UI (Next.js)

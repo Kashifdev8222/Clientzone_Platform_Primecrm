@@ -9,7 +9,9 @@
     { "key": "clientToken", "value": "" },
     { "key": "accountId", "value": "" },
     { "key": "resetToken", "value": "" },
-    { "key": "depositId", "value": "" }
+    { "key": "depositId", "value": "" },
+    { "key": "sourceId", "value": "" },
+    { "key": "withdrawId", "value": "" }
   ],
   "item": [
     {
@@ -259,6 +261,87 @@
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{clientToken}}" }],
             "url": "{{baseUrl}}/api/v1/clientzone/lead/accounts"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Withdraw (Phase 2C)",
+      "item": [
+        {
+          "name": "4.1 Create withdrawal source (crypto wallet)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.id) pm.collectionVariables.set('sourceId', j.data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{clientToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"Withdrawal\",\n  \"source\": \"Crypto\",\n  \"value\": \"USDT-TRC20 Wallet\",\n  \"extraData\": {\n    \"network\": \"TRC20\",\n    \"address\": \"TXmockWalletAddress123\"\n  }\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientzone/transaction-source/create"
+          }
+        },
+        {
+          "name": "4.2 List withdrawal sources",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{clientToken}}" }],
+            "url": "{{baseUrl}}/api/v1/clientzone/transaction-source/get"
+          }
+        },
+        {
+          "name": "4.3 Create withdraw request",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.id) pm.collectionVariables.set('withdrawId', j.data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{clientToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{accountId}}\",\n  \"amount\": 25,\n  \"currency\": \"USD\",\n  \"type\": \"Withdraw\",\n  \"comment\": \"Withdraw Performed\",\n  \"transactionSourceId\": \"{{sourceId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientzone/lead/account/transactions",
+            "description": "Requires enough balance (deposit + admin COMPLETED first)"
+          }
+        },
+        {
+          "name": "4.4 Cancel withdraw",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{clientToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Canceled\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientzone/lead/account/transactions/{{withdrawId}}"
           }
         }
       ]

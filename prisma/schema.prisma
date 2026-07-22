@@ -26,6 +26,7 @@ model Tenant {
   staffUsers           StaffUser[]
   passwordResetTokens  PasswordResetToken[]
   paymentMethods       PaymentMethod[]
+  transactionSources   TransactionSource[]
 
   @@map("tenants")
 }
@@ -55,10 +56,31 @@ model Client {
   tenant       Tenant           @relation(fields: [tenantId], references: [id])
   accounts     TradingAccount[]
   transactions Transaction[]
+  sources      TransactionSource[]
 
   @@unique([tenantId, email])
   @@index([tenantId])
   @@map("clients")
+}
+
+model TransactionSource {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  clientId   String   @map("client_id") @db.Uuid
+  type       String   @default("Withdrawal")
+  source     String   @default("Crypto")
+  value      String
+  extraData  Json     @default("{}") @map("extra_data")
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  client       Client        @relation(fields: [clientId], references: [id])
+  transactions Transaction[]
+
+  @@index([tenantId, clientId])
+  @@map("transaction_sources")
 }
 
 model StaffUser {
@@ -173,12 +195,16 @@ model Transaction {
   redirectUrl    String?           @map("redirect_url")
   invoiceAddress String?           @map("invoice_address")
   meta           Json              @default("{}")
+  transactionSourceId String?      @map("transaction_source_id") @db.Uuid
+  comment        String?
+  tpNumber       String?           @map("tp_number")
   createdAt      DateTime          @default(now()) @map("created_at")
   updatedAt      DateTime          @updatedAt @map("updated_at")
 
-  tenant  Tenant         @relation(fields: [tenantId], references: [id])
-  client  Client         @relation(fields: [clientId], references: [id])
-  account TradingAccount @relation(fields: [accountId], references: [id])
+  tenant            Tenant             @relation(fields: [tenantId], references: [id])
+  client            Client             @relation(fields: [clientId], references: [id])
+  account           TradingAccount     @relation(fields: [accountId], references: [id])
+  transactionSource TransactionSource? @relation(fields: [transactionSourceId], references: [id])
 
   @@index([tenantId, clientId])
   @@index([accountId])

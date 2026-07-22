@@ -9,6 +9,7 @@ import { TransactionsModule } from './transactions/transactions.module';
 import { AdminModule } from './admin/admin.module';
 import { MailModule } from './mail/mail.module';
 import { PaymentsModule } from './payments/payments.module';
+import { WithdrawModule } from './withdraw/withdraw.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { PaymentsModule } from './payments/payments.module';
     TransactionsModule,
     AdminModule,
     PaymentsModule,
+    WithdrawModule,
   ],
   controllers: [HealthController],
 })

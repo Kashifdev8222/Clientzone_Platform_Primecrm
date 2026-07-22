@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class ForgotPasswordDto {
   @IsEmail()
@@ -10,9 +10,17 @@ export class ResetPasswordDto {
   @MinLength(10)
   token!: string;
 
+  /** Our field */
+  @IsOptional()
   @IsString()
   @MinLength(6)
-  password!: string;
+  password?: string;
+
+  /** Portal / PrimeCRM field */
+  @IsOptional()
+  @IsString()
+  @MinLength(6)
+  newPassword?: string;
 }
 
 export class ChangePasswordDto {

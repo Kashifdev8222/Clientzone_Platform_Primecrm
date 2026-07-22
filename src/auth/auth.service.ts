@@ -18,6 +18,7 @@ import {
 } from './dto/password.dto';
 import { Decimal } from '@prisma/client/runtime/library';
 import type { JwtPayload } from '../common/types/jwt-payload';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class AuthService {
@@ -25,6 +26,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    private readonly mail: MailService,
   ) {}
 
   private defaultTenantSlug() {
@@ -299,17 +301,40 @@ export class AuthService {
       },
     });
 
+    const mailResult = await this.mail.sendPasswordResetEmail({
+      to: client.email,
+      firstName: client.firstName,
+      resetToken: rawToken,
+    });
+
     const expose =
       this.config.get<string>('NODE_ENV') !== 'production' ||
       this.config.get<string>('EXPOSE_RESET_TOKEN') === 'true';
 
     return {
-      ...generic,
-      ...(expose ? { data: { resetToken: rawToken, expiresAt } } : {}),
+      status: 'success',
+      message: mailResult.sent
+        ? 'If that email exists, a reset email was sent.'
+        : 'If that email exists, a reset token was created. Email provider not configured or send failed — use resetToken in staging.',
+      data: {
+        emailSent: mailResult.sent,
+        ...(expose ? { resetToken: rawToken, expiresAt } : {}),
+        ...(mailResult.sent || !expose
+          ? {}
+          : { mailError: mailResult.error }),
+      },
     };
   }
 
   async resetPassword(dto: ResetPasswordDto) {
+    const newPass = (dto.newPassword || dto.password || '').trim();
+    if (newPass.length < 6) {
+      throw new BadRequestException({
+        status: 'error',
+        message: 'Password must be at least 6 characters',
+      });
+    }
+
     const tokenHash = crypto
       .createHash('sha256')
       .update(dto.token.trim())
@@ -330,7 +355,7 @@ export class AuthService {
       });
     }
 
-    const passwordHash = await bcrypt.hash(dto.password, 12);
+    const passwordHash = await bcrypt.hash(newPass, 12);
     await this.prisma.$transaction([
       this.prisma.client.update({
         where: { id: row.userId },

@@ -1,31 +1,26 @@
-# CRM Platform API (NestJS + Supabase)
+# Clientzone Platform PrimeCRM API
 
-Multi-tenant CRM API that replaces PrimeCRM Client Zone endpoints for Apex AI (and future brands).
+Multi-tenant CRM API (NestJS + Supabase) that replaces PrimeCRM Client Zone endpoints for Apex AI and future brands.
 
 ## Stack
 
 - NestJS (TypeScript)
 - Prisma + Supabase Postgres
-- JWT auth (Client Zone Bearer)
-- Ready for Render deploy
+- JWT auth (Client Zone Bearer token)
+- Deploy on Render
 
-## Folder
-
-This lives in `crm-platform/` (separate from the PHP ClientZone portal).
-
-## Setup
+## Local setup
 
 ```bash
-cd crm-platform
-cp .env.example .env   # or use existing .env
+cp .env.example .env
 npm install
-npx prisma migrate dev --name init
+npx prisma migrate dev
 npm run prisma:seed
 npm run start:dev
 ```
 
-API: `http://localhost:3000`  
-Health: `http://localhost:3000/health`
+- API: `http://localhost:3000`
+- Health: `http://localhost:3000/health`
 
 ## Phase 1 endpoints
 
@@ -38,36 +33,60 @@ Health: `http://localhost:3000/health`
 | PATCH | `/api/v1/clientzone/lead/accounts/:id/name` | Bearer |
 | GET | `/api/v1/clientzone/lead/account/transactions` | Bearer |
 
-### Register
+### Register (Git Bash / Linux / macOS)
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/clientzone/leads ^
-  -H "Content-Type: application/json" ^
-  -d "{\"fullName\":\"Test User\",\"email\":\"test@example.com\",\"password\":\"secret123\",\"phone\":\"+923001234567\"}"
+curl -X POST http://localhost:3000/api/v1/clientzone/leads \
+  -H "Content-Type: application/json" \
+  -d '{"fullName":"Test User","email":"test@example.com","password":"secret123","phone":"+923001234567"}'
 ```
 
 ### Login
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/clientzone/auth/login ^
-  -H "Content-Type: application/json" ^
-  -d "{\"email\":\"test@example.com\",\"password\":\"secret123\"}"
+curl -X POST http://localhost:3000/api/v1/clientzone/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"secret123"}'
 ```
 
-Use `data.accessToken` as `Authorization: Bearer <token>` for accounts/transactions.
+Use `data.accessToken` as:
 
-## Point ClientZone at this API later
+`Authorization: Bearer <token>`
+
+## Render deploy settings
+
+| Setting | Value |
+|---------|--------|
+| Runtime | Node |
+| Build Command | `npm install && npx prisma generate && npm run build` |
+| Start Command | `npx prisma migrate deploy && npm run start:prod` |
+| Root Directory | *(leave empty if repo root is this API)* |
+
+### Required env vars on Render
+
+```text
+NODE_ENV=production
+JWT_SECRET=your-long-random-secret
+DEFAULT_TENANT_SLUG=apex-ai
+SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...
+DATABASE_URL=postgresql://...
+DIRECT_URL=postgresql://...
+```
+
+After deploy, test: `https://YOUR-SERVICE.onrender.com/health`
+
+## Point ClientZone at this API
 
 In portal `api/config.php`:
 
 ```php
-'BASE_URL' => 'http://localhost:3000/api/v1',
-// later: 'https://YOUR-SERVICE.onrender.com/api/v1',
+'BASE_URL' => 'https://YOUR-SERVICE.onrender.com/api/v1',
 ```
 
-## Render (later)
+## Notes
 
-1. New Web Service from this folder / GitHub repo
-2. Build: `npm install && npx prisma generate && npm run build`
-3. Start: `npx prisma migrate deploy && npm run start:prod`
-4. Set env vars from `.env.example`
+- Do not commit `.env`
+- ClientZone PHP portal stays separate; only `BASE_URL` changes
+- RLS on Supabase tables can be enabled later (NestJS uses direct DB connection)

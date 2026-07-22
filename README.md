@@ -58,7 +58,7 @@ Use `data.accessToken` as:
 | Setting | Value |
 |---------|--------|
 | Runtime | Node |
-| Build Command | `npm install && npx prisma generate && npm run build` |
+| Build Command | `npm install --include=dev && npx prisma generate && npm run build` |
 | Start Command | `npx prisma migrate deploy && npm run start:prod` |
 | Root Directory | *(leave empty if repo root is this API)* |
 

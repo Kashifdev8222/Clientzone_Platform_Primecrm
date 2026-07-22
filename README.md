@@ -62,6 +62,8 @@ Use `data.accessToken` as:
 | Start Command | `npx prisma migrate deploy && npm run start:prod` |
 | Root Directory | *(leave empty if repo root is this API)* |
 
+> Note: production entry file is `dist/main.js` (Nest build output).
+
 ### Required env vars on Render
 
 ```text

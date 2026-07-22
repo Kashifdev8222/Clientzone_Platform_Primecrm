@@ -63,7 +63,15 @@ export class MailService {
       if (!res.ok) {
         const body = await res.text();
         this.logger.error(`Resend failed: ${res.status} ${body}`);
-        return { sent: false, error: `Resend ${res.status}` };
+        // Surface Resend message (helps debug 403 domain/to restrictions)
+        let detail = body;
+        try {
+          const parsed = JSON.parse(body) as { message?: string };
+          if (parsed?.message) detail = parsed.message;
+        } catch {
+          /* keep raw */
+        }
+        return { sent: false, error: `Resend ${res.status}: ${detail}` };
       }
 
       this.logger.log(`Password reset email sent to ${params.to}`);

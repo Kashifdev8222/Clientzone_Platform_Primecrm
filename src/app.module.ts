@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { LeadsModule } from './leads/leads.module';
 import { AccountsModule } from './accounts/accounts.module';
 import { TransactionsModule } from './transactions/transactions.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { TransactionsModule } from './transactions/transactions.module';
     LeadsModule,
     AccountsModule,
     TransactionsModule,
+    AdminModule,
   ],
   controllers: [HealthController],
 })

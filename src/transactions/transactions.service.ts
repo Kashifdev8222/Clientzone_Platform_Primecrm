@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { JwtPayload } from '../common/guards/jwt-auth.guard';
+import type { JwtPayload } from '../common/types/jwt-payload';
 
 @Injectable()
 export class TransactionsService {

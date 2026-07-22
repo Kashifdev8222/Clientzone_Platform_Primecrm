@@ -7,19 +7,14 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
-
-export type JwtPayload = {
-  sub: string;
-  email: string;
-  tenantId: string;
-  type: 'client';
-};
+import type { JwtPayload, JwtUserType } from '../types/jwt-payload';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    private readonly expectedType: JwtUserType = 'client',
   ) {}
 
   canActivate(context: ExecutionContext): boolean {
@@ -36,13 +31,34 @@ export class JwtAuthGuard implements CanActivate {
       const payload = this.jwt.verify<JwtPayload>(token, {
         secret: this.config.getOrThrow<string>('JWT_SECRET'),
       });
+      if (payload.type !== this.expectedType) {
+        throw new UnauthorizedException({
+          status: 'error',
+          message: 'Invalid token type for this API',
+        });
+      }
       (req as Request & { user: JwtPayload }).user = payload;
       return true;
-    } catch {
+    } catch (e) {
+      if (e instanceof UnauthorizedException) throw e;
       throw new UnauthorizedException({
         status: 'error',
         message: 'Invalid or expired token',
       });
     }
+  }
+}
+
+@Injectable()
+export class ClientJwtGuard extends JwtAuthGuard {
+  constructor(jwt: JwtService, config: ConfigService) {
+    super(jwt, config, 'client');
+  }
+}
+
+@Injectable()
+export class StaffJwtGuard extends JwtAuthGuard {
+  constructor(jwt: JwtService, config: ConfigService) {
+    super(jwt, config, 'staff');
   }
 }

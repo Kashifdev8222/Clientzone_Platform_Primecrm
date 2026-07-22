@@ -1,11 +1,11 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { TransactionsService } from './transactions.service';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { ClientJwtGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
-import type { JwtPayload } from '../common/guards/jwt-auth.guard';
+import type { JwtPayload } from '../common/types/jwt-payload';
 
 @Controller('api/v1/clientzone/lead/account')
-@UseGuards(JwtAuthGuard)
+@UseGuards(ClientJwtGuard)
 export class TransactionsController {
   constructor(private readonly transactions: TransactionsService) {}
 

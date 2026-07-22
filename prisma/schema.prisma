@@ -20,9 +20,11 @@ model Tenant {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
-  clients  Client[]
-  accounts TradingAccount[]
-  transactions Transaction[]
+  clients              Client[]
+  accounts             TradingAccount[]
+  transactions         Transaction[]
+  staffUsers           StaffUser[]
+  passwordResetTokens  PasswordResetToken[]
 
   @@map("tenants")
 }
@@ -51,6 +53,41 @@ model Client {
   @@unique([tenantId, email])
   @@index([tenantId])
   @@map("clients")
+}
+
+model StaffUser {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  email        String
+  passwordHash String   @map("password_hash")
+  firstName    String   @map("first_name")
+  lastName     String   @map("last_name")
+  role         String   @default("admin")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@map("staff_users")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  tenantId  String    @map("tenant_id") @db.Uuid
+  userType  String    @map("user_type")
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, userType, userId])
+  @@map("password_reset_tokens")
 }
 
 model TradingAccount {

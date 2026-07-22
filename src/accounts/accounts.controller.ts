@@ -1,9 +1,9 @@
 import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
 import { IsString, MinLength } from 'class-validator';
 import { AccountsService } from './accounts.service';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { ClientJwtGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
-import type { JwtPayload } from '../common/guards/jwt-auth.guard';
+import type { JwtPayload } from '../common/types/jwt-payload';
 
 class RenameAccountDto {
   @IsString()
@@ -12,7 +12,7 @@ class RenameAccountDto {
 }
 
 @Controller('api/v1/clientzone/lead')
-@UseGuards(JwtAuthGuard)
+@UseGuards(ClientJwtGuard)
 export class AccountsController {
   constructor(private readonly accounts: AccountsService) {}
 

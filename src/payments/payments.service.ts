@@ -133,6 +133,8 @@ export class PaymentsService {
         invoiceAddress,
         paymentUrl: redirectUrl,
         redirectUrl,
+        hosted_page_url: redirectUrl,
+        url: redirectUrl,
         message:
           'Mock CryptoPay invoice created. Ask admin to mark COMPLETED to credit balance.',
       },
@@ -196,6 +198,8 @@ export class PaymentsService {
         currency: tx.currency,
         redirectUrl,
         paymentUrl: redirectUrl,
+        hosted_page_url: redirectUrl,
+        url: redirectUrl,
         message:
           'Mock Lemuxion payment created. Ask admin to mark COMPLETED to credit balance.',
       },

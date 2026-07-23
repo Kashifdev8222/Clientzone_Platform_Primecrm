@@ -19,6 +19,7 @@ import {
 import { Decimal } from '@prisma/client/runtime/library';
 import type { JwtPayload } from '../common/types/jwt-payload';
 import { MailService } from '../mail/mail.service';
+import { generateTpNumber } from '../common/utils/tp-number';
 
 @Injectable()
 export class AuthService {
@@ -144,9 +145,19 @@ export class AuthService {
         isDemoAccount: boolean;
         balance: unknown;
         currency: string;
+        externalLogin: string | null;
       }[] = [];
       for (let i = 0; i < accountSpecs.length; i++) {
         const spec = accountSpecs[i];
+        let externalLogin = generateTpNumber();
+        for (let attempt = 0; attempt < 8; attempt++) {
+          const clash = await tx.tradingAccount.findFirst({
+            where: { tenantId: tenant.id, externalLogin },
+            select: { id: true },
+          });
+          if (!clash) break;
+          externalLogin = generateTpNumber();
+        }
         const account = await tx.tradingAccount.create({
           data: {
             tenantId: tenant.id,
@@ -159,6 +170,7 @@ export class AuthService {
             equity: new Decimal(0),
             freeMargin: new Decimal(0),
             isDemoAccount: spec.isDemoAccount ?? !!isDemo,
+            externalLogin,
           },
         });
         accounts.push(account);
@@ -194,6 +206,8 @@ export class AuthService {
           isDemoAccount: a.isDemoAccount,
           balance: Number(a.balance),
           currency: a.currency,
+          tpNumber: a.externalLogin || a.id,
+          externalLogin: a.externalLogin,
         })),
         accountId: result.accounts[0]?.id ?? null,
       },

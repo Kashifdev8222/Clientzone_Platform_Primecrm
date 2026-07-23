@@ -12,6 +12,7 @@ import {
   CreateCryptoPayDto,
   CreateLemuxionPayDto,
 } from './dto/payments.dto';
+import { resolveCryptoCatalog } from './crypto-catalog';
 
 @Injectable()
 export class PaymentsService {
@@ -47,104 +48,7 @@ export class PaymentsService {
     const cfg = (method?.config || {}) as {
       supportedCoins?: string[] | Array<Record<string, unknown>>;
     };
-
-    const defaults = [
-      {
-        currency: 'BTC',
-        name: 'Bitcoin',
-        networks: [
-          {
-            network: 'bitcoin',
-            name: 'Bitcoin',
-            coin_withdrawals: { enabled: true },
-          },
-        ],
-      },
-      {
-        currency: 'ETH',
-        name: 'Ethereum',
-        networks: [
-          {
-            network: 'ethereum',
-            name: 'ERC20',
-            coin_withdrawals: { enabled: true },
-          },
-        ],
-      },
-      {
-        currency: 'USDT',
-        name: 'Tether',
-        networks: [
-          {
-            network: 'trc20',
-            name: 'TRC20',
-            coin_withdrawals: { enabled: true },
-          },
-          {
-            network: 'erc20',
-            name: 'ERC20',
-            coin_withdrawals: { enabled: true },
-          },
-        ],
-      },
-      {
-        currency: 'USDC',
-        name: 'USD Coin',
-        networks: [
-          {
-            network: 'erc20',
-            name: 'ERC20',
-            coin_withdrawals: { enabled: true },
-          },
-        ],
-      },
-    ];
-
-    const raw = cfg.supportedCoins;
-    if (!raw || !Array.isArray(raw) || raw.length === 0) {
-      return { status: 'success', data: defaults };
-    }
-
-    // Config may be ["BTC","ETH"] or full objects
-    const data = raw.map((item) => {
-      if (typeof item === 'string') {
-        const hit = defaults.find((d) => d.currency === item.toUpperCase());
-        return (
-          hit || {
-            currency: item.toUpperCase(),
-            name: item.toUpperCase(),
-            networks: [
-              {
-                network: item.toLowerCase(),
-                name: item.toUpperCase(),
-                coin_withdrawals: { enabled: true },
-              },
-            ],
-          }
-        );
-      }
-      const currency = String(
-        (item as { currency?: string; symbol?: string }).currency ||
-          (item as { symbol?: string }).symbol ||
-          '',
-      ).toUpperCase();
-      const hit = defaults.find((d) => d.currency === currency);
-      return {
-        currency,
-        name: String((item as { name?: string }).name || currency),
-        networks:
-          (item as { networks?: typeof defaults[0]['networks'] }).networks ||
-          hit?.networks ||
-          [
-            {
-              network: currency.toLowerCase(),
-              name: currency,
-              coin_withdrawals: { enabled: true },
-            },
-          ],
-      };
-    });
-
+    const data = resolveCryptoCatalog(cfg.supportedCoins);
     return { status: 'success', data };
   }
 

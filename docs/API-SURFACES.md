@@ -48,6 +48,17 @@ Admin panel   ──► /api/v1/admin/*       ──► NestJS ──► Supabas
 | DELETE | `/clientzone/transaction-source/delete/:id` | Bearer client |
 | POST | `/clientzone/documents` | Bearer client (multipart) |
 | GET | `/clientzone/documents/all` | Bearer client |
+| GET | `/clientzone/lead/ticket/department` | Bearer client |
+| GET | `/clientzone/lead/ticket/user` | Bearer client |
+| POST | `/clientzone/lead/ticket` | Bearer client |
+| GET | `/clientzone/lead/ticket/:id` | Bearer client |
+| PATCH | `/clientzone/lead/ticket/:id` | Bearer client |
+| POST | `/clientzone/lead/ticket-comment` | Bearer client |
+| POST | `/clientzone/call-meeting-appointment` | Bearer client |
+| GET | `/clientzone/call-meeting-appointment/user` | Bearer client |
+| PATCH | `/clientzone/call-meeting-appointment/:id` | Bearer client |
+| DELETE | `/clientzone/call-meeting-appointment/:id` | Bearer client |
+| GET | `/clientzone/call-meeting-appointment/agent/time-slots/:date/:duration` | Bearer client |
 
 ### Admin
 
@@ -65,6 +76,13 @@ Admin panel   ──► /api/v1/admin/*       ──► NestJS ──► Supabas
 | PATCH | `/admin/withdrawals/:id/status` | Bearer staff |
 | GET | `/admin/documents` | Bearer staff |
 | PATCH | `/admin/documents/:id/review` | Bearer staff |
+| GET\|POST | `/admin/departments` | Bearer staff |
+| PATCH | `/admin/departments/:id` | Bearer staff |
+| GET | `/admin/tickets` | Bearer staff |
+| GET\|PATCH | `/admin/tickets/:id` | Bearer staff |
+| POST | `/admin/tickets/:id/comments` | Bearer staff |
+| GET | `/admin/meetings` | Bearer staff |
+| PATCH | `/admin/meetings/:id` | Bearer staff |
 
 ## Build order (full CRM)
 
@@ -73,5 +91,5 @@ Admin panel   ──► /api/v1/admin/*       ──► NestJS ──► Supabas
 3. Deposits + mock reconcile ✅
 4. Withdraw + sources ✅
 5. KYC documents ✅
-6. Tickets + meetings (client + admin desk)
+6. Tickets + meetings (client + admin desk) ✅
 7. Admin panel UI (Next.js)

@@ -12,7 +12,10 @@
     { "key": "depositId", "value": "" },
     { "key": "sourceId", "value": "" },
     { "key": "withdrawId", "value": "" },
-    { "key": "documentId", "value": "" }
+    { "key": "documentId", "value": "" },
+    { "key": "departmentId", "value": "" },
+    { "key": "ticketId", "value": "" },
+    { "key": "meetingId", "value": "" }
   ],
   "item": [
     {
@@ -394,6 +397,167 @@
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{clientToken}}" }],
             "url": "{{baseUrl}}/api/v1/clientzone/documents/all"
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Support — Tickets + Meetings (Phase 2E)",
+      "item": [
+        {
+          "name": "6.1 List departments",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.[0]?.id) pm.collectionVariables.set('departmentId', j.data[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{clientToken}}" }],
+            "url": "{{baseUrl}}/api/v1/clientzone/lead/ticket/department"
+          }
+        },
+        {
+          "name": "6.2 Create ticket",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.id) pm.collectionVariables.set('ticketId', j.data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{clientToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"Other\",\n  \"departmentId\": \"{{departmentId}}\",\n  \"title\": \"Need help with account\",\n  \"userTicketComments\": [\n    { \"text\": \"Hello, I need support with my trading account.\" }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientzone/lead/ticket"
+          }
+        },
+        {
+          "name": "6.3 List my tickets",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{clientToken}}" }],
+            "url": "{{baseUrl}}/api/v1/clientzone/lead/ticket/user"
+          }
+        },
+        {
+          "name": "6.4 Get ticket",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{clientToken}}" }],
+            "url": "{{baseUrl}}/api/v1/clientzone/lead/ticket/{{ticketId}}"
+          }
+        },
+        {
+          "name": "6.5 Add comment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{clientToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userTicketId\": \"{{ticketId}}\",\n  \"text\": \"Following up — any update?\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientzone/lead/ticket-comment"
+          }
+        },
+        {
+          "name": "6.6 Close ticket",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{clientToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Closed\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientzone/lead/ticket/{{ticketId}}"
+          }
+        },
+        {
+          "name": "6.7 Time slots",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{clientToken}}" }],
+            "url": "{{baseUrl}}/api/v1/clientzone/call-meeting-appointment/agent/time-slots/2026-7-25/30"
+          }
+        },
+        {
+          "name": "6.8 Create meeting",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.id) pm.collectionVariables.set('meetingId', j.data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{clientToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Call with agent\",\n  \"description\": \"Discuss account setup\",\n  \"date\": \"2026-07-25T10:00:00.000Z\",\n  \"meetingPeriod\": 30,\n  \"importance\": \"normal\",\n  \"isUserConfirmed\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientzone/call-meeting-appointment"
+          }
+        },
+        {
+          "name": "6.9 List my meetings",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{clientToken}}" }],
+            "url": "{{baseUrl}}/api/v1/clientzone/call-meeting-appointment/user"
+          }
+        },
+        {
+          "name": "6.10 Reschedule meeting",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{clientToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date\": \"2026-07-26T11:00:00.000Z\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientzone/call-meeting-appointment/{{meetingId}}"
+          }
+        },
+        {
+          "name": "6.11 Cancel meeting",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{clientToken}}" }],
+            "url": "{{baseUrl}}/api/v1/clientzone/call-meeting-appointment/{{meetingId}}"
           }
         }
       ]

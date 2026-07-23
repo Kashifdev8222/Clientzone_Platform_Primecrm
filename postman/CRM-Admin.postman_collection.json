@@ -10,7 +10,10 @@
     { "key": "depositId", "value": "" },
     { "key": "withdrawId", "value": "" },
     { "key": "documentId", "value": "" },
-    { "key": "clientId", "value": "" }
+    { "key": "clientId", "value": "" },
+    { "key": "ticketId", "value": "" },
+    { "key": "meetingId", "value": "" },
+    { "key": "departmentId", "value": "" }
   ],
   "item": [
     {
@@ -293,6 +296,136 @@
               "raw": "{\n  \"status\": \"REJECTED\",\n  \"reviewNote\": \"Blurry image, please re-upload\"\n}"
             },
             "url": "{{baseUrl}}/api/v1/admin/documents/{{documentId}}/review"
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Support (Phase 2E)",
+      "item": [
+        {
+          "name": "6.1 List departments",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.[0]?.id) pm.collectionVariables.set('departmentId', j.data[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{staffToken}}" }],
+            "url": "{{baseUrl}}/api/v1/admin/departments"
+          }
+        },
+        {
+          "name": "6.2 Create department",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{staffToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Compliance\",\n  \"sortOrder\": 10\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/admin/departments"
+          }
+        },
+        {
+          "name": "6.3 List tickets",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.[0]?.id) pm.collectionVariables.set('ticketId', j.data[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{staffToken}}" }],
+            "url": "{{baseUrl}}/api/v1/admin/tickets"
+          }
+        },
+        {
+          "name": "6.4 Get ticket",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{staffToken}}" }],
+            "url": "{{baseUrl}}/api/v1/admin/tickets/{{ticketId}}"
+          }
+        },
+        {
+          "name": "6.5 Staff reply",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{staffToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Thanks — we are looking into this.\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/admin/tickets/{{ticketId}}/comments"
+          }
+        },
+        {
+          "name": "6.6 Set ticket InProgress",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{staffToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"InProgress\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/admin/tickets/{{ticketId}}"
+          }
+        },
+        {
+          "name": "6.7 List meetings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.[0]?.id) pm.collectionVariables.set('meetingId', j.data[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{staffToken}}" }],
+            "url": "{{baseUrl}}/api/v1/admin/meetings"
+          }
+        },
+        {
+          "name": "6.8 Confirm meeting",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{staffToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"confirmed\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/admin/meetings/{{meetingId}}"
           }
         }
       ]

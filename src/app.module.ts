@@ -12,6 +12,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { WithdrawModule } from './withdraw/withdraw.module';
 import { StorageModule } from './storage/storage.module';
 import { KycModule } from './kyc/kyc.module';
+import { SupportModule } from './support/support.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { KycModule } from './kyc/kyc.module';
     PaymentsModule,
     WithdrawModule,
     KycModule,
+    SupportModule,
   ],
   controllers: [HealthController],
 })

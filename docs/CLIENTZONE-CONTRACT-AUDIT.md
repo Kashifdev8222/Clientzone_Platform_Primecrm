@@ -57,8 +57,8 @@ If you later need **agent-created leads** (staff token required), we add Admin e
 - crypto-pay / lemuxion-pay / supported-coins  
 - withdraw create/cancel + transaction-source CRUD  
 - documents upload/list (KYC)  
-- tickets + comments + departments  
-- meetings + time-slots  
+- tickets + comments + departments ✅ (Phase 2E)
+- meetings + time-slots ✅ (Phase 2E)
 
 ---
 

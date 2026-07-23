@@ -28,6 +28,10 @@ model Tenant {
   paymentMethods       PaymentMethod[]
   transactionSources   TransactionSource[]
   kycDocuments         KycDocument[]
+  ticketDepartments    TicketDepartment[]
+  tickets              Ticket[]
+  ticketComments       TicketComment[]
+  meetings             Meeting[]
 
   @@map("tenants")
 }
@@ -59,6 +63,8 @@ model Client {
   transactions Transaction[]
   sources      TransactionSource[]
   documents    KycDocument[]
+  tickets      Ticket[]
+  meetings     Meeting[]
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -123,11 +129,93 @@ model StaffUser {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  tenant Tenant @relation(fields: [tenantId], references: [id])
+  tenant           Tenant   @relation(fields: [tenantId], references: [id])
+  assignedTickets  Ticket[] @relation("TicketAssignee")
+  assignedMeetings Meeting[] @relation("MeetingAssignee")
 
   @@unique([tenantId, email])
   @@index([tenantId])
   @@map("staff_users")
+}
+
+model TicketDepartment {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  name      String
+  isActive  Boolean  @default(true) @map("is_active")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant  Tenant   @relation(fields: [tenantId], references: [id])
+  tickets Ticket[]
+
+  @@index([tenantId, isActive])
+  @@map("ticket_departments")
+}
+
+model Ticket {
+  id               String    @id @default(uuid()) @db.Uuid
+  tenantId         String    @map("tenant_id") @db.Uuid
+  clientId         String    @map("client_id") @db.Uuid
+  departmentId     String?   @map("department_id") @db.Uuid
+  category         String    @default("Other")
+  title            String
+  status           String    @default("New")
+  assignedStaffId  String?   @map("assigned_staff_id") @db.Uuid
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  tenant      Tenant            @relation(fields: [tenantId], references: [id])
+  client      Client            @relation(fields: [clientId], references: [id])
+  department  TicketDepartment? @relation(fields: [departmentId], references: [id])
+  assignee    StaffUser?        @relation("TicketAssignee", fields: [assignedStaffId], references: [id])
+  comments    TicketComment[]
+
+  @@index([tenantId, clientId])
+  @@index([tenantId, status])
+  @@map("tickets")
+}
+
+model TicketComment {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  ticketId   String   @map("ticket_id") @db.Uuid
+  authorType String   @default("client") @map("author_type")
+  authorId   String   @map("author_id") @db.Uuid
+  text       String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, createdAt])
+  @@map("ticket_comments")
+}
+
+model Meeting {
+  id               String   @id @default(uuid()) @db.Uuid
+  tenantId         String   @map("tenant_id") @db.Uuid
+  clientId         String   @map("client_id") @db.Uuid
+  title            String
+  description      String   @default("")
+  date             DateTime
+  meetingPeriod    Int      @default(30) @map("meeting_period")
+  importance       String   @default("normal")
+  status           String   @default("scheduled")
+  isUserConfirmed  Boolean  @default(true) @map("is_user_confirmed")
+  assignedStaffId  String?  @map("assigned_staff_id") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  tenant   Tenant     @relation(fields: [tenantId], references: [id])
+  client   Client     @relation(fields: [clientId], references: [id])
+  assignee StaffUser? @relation("MeetingAssignee", fields: [assignedStaffId], references: [id])
+
+  @@index([tenantId, clientId])
+  @@index([tenantId, date])
+  @@index([tenantId, status])
+  @@map("meetings")
 }
 
 model PasswordResetToken {

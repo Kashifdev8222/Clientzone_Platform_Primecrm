@@ -19,7 +19,6 @@ import {
 import { Decimal } from '@prisma/client/runtime/library';
 import type { JwtPayload } from '../common/types/jwt-payload';
 import { MailService } from '../mail/mail.service';
-import { generateTpNumber } from '../common/utils/tp-number';
 
 @Injectable()
 export class AuthService {
@@ -80,15 +79,61 @@ export class AuthService {
     const email = dto.email.trim().toLowerCase();
     const existing = await this.prisma.client.findUnique({
       where: { tenantId_email: { tenantId: tenant.id, email } },
+      include: {
+        accounts: {
+          where: { isActive: true },
+          orderBy: { createdAt: 'asc' },
+        },
+      },
     });
+
+    // Idempotent: timeout often creates the user then PHP never gets 200.
+    // Same email + password on retry → treat as successful register.
     if (existing) {
-      throw new ConflictException({
-        status: 'error',
-        message: 'Email already registered for this brand',
-      });
+      const passwordOk = await bcrypt.compare(dto.password, existing.passwordHash);
+      if (!passwordOk) {
+        throw new ConflictException({
+          status: 'error',
+          message: 'Email already registered for this brand',
+        });
+      }
+      return {
+        status: 'success',
+        data: {
+          id: existing.id,
+          userId: existing.id,
+          email: existing.email,
+          firstName: existing.firstName,
+          lastName: existing.lastName,
+          phone: existing.phone,
+          country: existing.country,
+          language: existing.language,
+          username: existing.username,
+          birthDate: existing.birthDate,
+          isDemoAccount: existing.isDemo,
+          brandId: existing.brandId,
+          businessUnitId: existing.businessUnitId,
+          tags: existing.tags,
+          notes: existing.notes,
+          accounts: existing.accounts.map((a) => ({
+            id: a.id,
+            name: a.name,
+            groupName: a.groupName,
+            leverage: a.leverage,
+            isDemoAccount: a.isDemoAccount,
+            balance: Number(a.balance),
+            currency: a.currency,
+            tpNumber: a.externalLogin || a.id,
+            externalLogin: a.externalLogin,
+          })),
+          accountId: existing.accounts[0]?.id ?? null,
+          alreadyExisted: true,
+        },
+      };
     }
 
-    const passwordHash = await bcrypt.hash(dto.password, 10);
+    // cost 8 ≈ faster register (cold Render + PHP timeout); still secure for portal
+    const passwordHash = await bcrypt.hash(dto.password, 8);
     const birthDate = this.parseBirthDate(dto.birthDate);
     const isDemo =
       dto.isDemoAccount === true ||
@@ -149,15 +194,8 @@ export class AuthService {
       }[] = [];
       for (let i = 0; i < accountSpecs.length; i++) {
         const spec = accountSpecs[i];
-        let externalLogin = generateTpNumber();
-        for (let attempt = 0; attempt < 8; attempt++) {
-          const clash = await tx.tradingAccount.findFirst({
-            where: { tenantId: tenant.id, externalLogin },
-            select: { id: true },
-          });
-          if (!clash) break;
-          externalLogin = generateTpNumber();
-        }
+        // Time-based TP — skip uniqueness round-trips inside the transaction
+        const externalLogin = `${Date.now()}${i}${Math.floor(Math.random() * 90 + 10)}`.slice(-11);
         const account = await tx.tradingAccount.create({
           data: {
             tenantId: tenant.id,

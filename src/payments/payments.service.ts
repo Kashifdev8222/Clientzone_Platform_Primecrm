@@ -13,6 +13,7 @@ import {
   CreateLemuxionPayDto,
 } from './dto/payments.dto';
 import { resolveCryptoCatalog } from './crypto-catalog';
+import { normalizeAdminStatus } from '../common/tx-portal-map';
 
 @Injectable()
 export class PaymentsService {
@@ -109,6 +110,7 @@ export class PaymentsService {
         invoiceAddress,
         redirectUrl,
         note: `Crypto deposit ${payCurrency}`,
+        comment: `CryptoPay ${payCurrency}${dto.network ? ` (${dto.network})` : ''}`,
         meta: {
           mode: 'mock',
           payCurrency,
@@ -175,6 +177,7 @@ export class PaymentsService {
         priceCurrency: currency,
         redirectUrl,
         note: dto.description,
+        comment: dto.description || 'LemuxionPay deposit',
         meta: {
           mode: 'mock',
           street: dto.street,
@@ -235,6 +238,10 @@ export class PaymentsService {
         payCurrency: t.payCurrency,
         redirectUrl: t.redirectUrl,
         invoiceAddress: t.invoiceAddress,
+        comment: t.comment,
+        note: t.note,
+        rejectReason:
+          String(t.status).toUpperCase() === 'FAILED' ? t.note || t.comment : null,
         client: t.client,
         account: t.account,
         createdAt: t.createdAt,
@@ -257,29 +264,36 @@ export class PaymentsService {
       });
     }
 
-    const allowed = ['COMPLETED', 'FAILED', 'CANCELED', 'PROCESSING'] as const;
-    if (!allowed.includes(dto.status)) {
+    const status = normalizeAdminStatus(dto.status);
+    if (!status) {
       throw new BadRequestException({
         status: 'error',
         message: 'Invalid status',
       });
     }
 
-    if (tx.status === 'COMPLETED' && dto.status === 'COMPLETED') {
+    if (tx.status === 'COMPLETED' && status === 'COMPLETED') {
       return { status: 'success', message: 'Already completed', data: { id: tx.id } };
     }
+
+    const noteText = dto.note?.trim() || tx.note;
+    const commentText =
+      status === 'FAILED'
+        ? dto.note?.trim() || tx.comment || 'Rejected by admin'
+        : tx.comment;
 
     const updated = await this.prisma.$transaction(async (db) => {
       const row = await db.transaction.update({
         where: { id: tx.id },
         data: {
-          status: dto.status,
-          note: dto.note || tx.note,
+          status,
+          note: noteText,
+          comment: commentText,
         },
       });
 
       // Credit balance only when moving to COMPLETED first time
-      if (dto.status === 'COMPLETED' && tx.status !== 'COMPLETED') {
+      if (status === 'COMPLETED' && tx.status !== 'COMPLETED') {
         await db.tradingAccount.update({
           where: { id: tx.accountId },
           data: {

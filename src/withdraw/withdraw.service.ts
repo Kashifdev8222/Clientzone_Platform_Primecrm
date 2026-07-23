@@ -14,6 +14,7 @@ import {
   CreateWithdrawDto,
   EditSourceDto,
 } from './dto/withdraw.dto';
+import { normalizeAdminStatus } from '../common/tx-portal-map';
 
 @Injectable()
 export class WithdrawService {
@@ -299,6 +300,9 @@ export class WithdrawService {
         amount: Number(t.amount),
         currency: t.currency,
         comment: t.comment,
+        note: t.note,
+        rejectReason:
+          String(t.status).toUpperCase() === 'FAILED' ? t.note || t.comment : null,
         client: t.client,
         account: t.account,
         source: t.transactionSource
@@ -329,8 +333,8 @@ export class WithdrawService {
       });
     }
 
-    const allowed = ['COMPLETED', 'FAILED', 'CANCELED', 'PROCESSING'] as const;
-    if (!allowed.includes(dto.status)) {
+    const status = normalizeAdminStatus(dto.status);
+    if (!status) {
       throw new BadRequestException({
         status: 'error',
         message: 'Invalid status',
@@ -338,7 +342,7 @@ export class WithdrawService {
     }
 
     if (tx.status === 'COMPLETED' || tx.status === 'CANCELED') {
-      if (tx.status === dto.status) {
+      if (tx.status === status) {
         return {
           status: 'success',
           message: `Already ${tx.status}`,
@@ -351,18 +355,25 @@ export class WithdrawService {
       });
     }
 
+    const noteText = dto.note?.trim() || tx.note;
+    const commentText =
+      status === 'FAILED'
+        ? dto.note?.trim() || tx.comment || 'Rejected by admin'
+        : tx.comment;
+
     const updated = await this.prisma.$transaction(async (db) => {
       const row = await db.transaction.update({
         where: { id: tx.id },
         data: {
-          status: dto.status,
-          note: dto.note || tx.note,
+          status,
+          note: noteText,
+          comment: commentText,
         },
       });
 
       // Reject / cancel → refund held amount
       if (
-        (dto.status === 'FAILED' || dto.status === 'CANCELED') &&
+        (status === 'FAILED' || status === 'CANCELED') &&
         (tx.status === 'PENDING' || tx.status === 'PROCESSING')
       ) {
         await db.tradingAccount.update({

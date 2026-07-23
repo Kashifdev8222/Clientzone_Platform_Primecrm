@@ -88,8 +88,9 @@ export class EditSourceDto {
 }
 
 export class AdminWithdrawStatusDto {
+  /** COMPLETED | FAILED | CANCELED | PROCESSING | PENDING | REJECTED | APPROVED */
   @IsString()
-  status!: 'COMPLETED' | 'FAILED' | 'CANCELED' | 'PROCESSING';
+  status!: string;
 
   @IsOptional()
   @IsString()

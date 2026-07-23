@@ -69,9 +69,11 @@ export class CreateLemuxionPayDto {
 }
 
 export class AdminDepositStatusDto {
+  /** COMPLETED | FAILED | CANCELED | PROCESSING | PENDING | REJECTED | APPROVED */
   @IsString()
-  status!: 'COMPLETED' | 'FAILED' | 'CANCELED' | 'PROCESSING';
+  status!: string;
 
+  /** Rejection / admin note shown as Comment + Rejection Reason in portal */
   @IsOptional()
   @IsString()
   note?: string;

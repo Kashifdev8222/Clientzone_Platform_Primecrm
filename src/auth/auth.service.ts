@@ -87,7 +87,7 @@ export class AuthService {
       });
     }
 
-    const passwordHash = await bcrypt.hash(dto.password, 12);
+    const passwordHash = await bcrypt.hash(dto.password, 10);
     const birthDate = this.parseBirthDate(dto.birthDate);
     const isDemo =
       dto.isDemoAccount === true ||

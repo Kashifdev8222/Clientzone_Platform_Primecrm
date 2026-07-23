@@ -241,7 +241,11 @@ export class PaymentsService {
         comment: t.comment,
         note: t.note,
         rejectReason:
-          String(t.status).toUpperCase() === 'FAILED' ? t.note || t.comment : null,
+          ['FAILED', 'CANCELED'].includes(String(t.status).toUpperCase())
+            ? t.note && t.note !== t.comment
+              ? t.note
+              : null
+            : null,
         client: t.client,
         account: t.account,
         createdAt: t.createdAt,
@@ -276,27 +280,21 @@ export class PaymentsService {
       return { status: 'success', message: 'Already completed', data: { id: tx.id } };
     }
 
-    const noteText =
-      status === 'FAILED'
-        ? dto.note?.trim() || 'Rejected by admin'
-        : status === 'COMPLETED' || status === 'PENDING' || status === 'PROCESSING'
-          ? null
-          : dto.note?.trim() || tx.note;
-
     const updated = await this.prisma.$transaction(async (db) => {
       const row = await db.transaction.update({
         where: { id: tx.id },
         data: {
           status,
-          // comment = client-facing deposit/withdraw text (never overwrite on reject)
-          // note = rejection reason only when FAILED
+          // comment stays; note = reason for Rejected OR Canceled
           ...(status === 'FAILED'
-            ? { note: noteText }
-            : status === 'COMPLETED' || status === 'PENDING' || status === 'PROCESSING'
-              ? { note: null }
-              : dto.note?.trim()
-                ? { note: dto.note.trim() }
-                : {}),
+            ? { note: dto.note?.trim() || 'Rejected by admin' }
+            : status === 'CANCELED'
+              ? { note: dto.note?.trim() || 'Canceled by admin' }
+              : status === 'COMPLETED' || status === 'PENDING' || status === 'PROCESSING'
+                ? { note: null }
+                : dto.note?.trim()
+                  ? { note: dto.note.trim() }
+                  : {}),
         },
       });
 

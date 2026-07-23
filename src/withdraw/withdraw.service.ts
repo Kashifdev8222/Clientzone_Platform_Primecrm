@@ -302,7 +302,11 @@ export class WithdrawService {
         comment: t.comment,
         note: t.note,
         rejectReason:
-          String(t.status).toUpperCase() === 'FAILED' ? t.note || t.comment : null,
+          ['FAILED', 'CANCELED'].includes(String(t.status).toUpperCase())
+            ? t.note && t.note !== t.comment
+              ? t.note
+              : null
+            : null,
         client: t.client,
         account: t.account,
         source: t.transactionSource
@@ -362,11 +366,13 @@ export class WithdrawService {
           status,
           ...(status === 'FAILED'
             ? { note: dto.note?.trim() || 'Rejected by admin' }
-            : status === 'COMPLETED' || status === 'PENDING' || status === 'PROCESSING'
-              ? { note: null }
-              : dto.note?.trim()
-                ? { note: dto.note.trim() }
-                : {}),
+            : status === 'CANCELED'
+              ? { note: dto.note?.trim() || 'Canceled by admin' }
+              : status === 'COMPLETED' || status === 'PENDING' || status === 'PROCESSING'
+                ? { note: null }
+                : dto.note?.trim()
+                  ? { note: dto.note.trim() }
+                  : {}),
         },
       });
 

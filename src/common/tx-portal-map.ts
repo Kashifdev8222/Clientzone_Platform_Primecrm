@@ -51,14 +51,16 @@ export function portalComment(row: {
   return '';
 }
 
-/** Rejection reason only when rejected — uses `note` (never the deposit/withdraw comment). */
+/** Reason shown for Rejected OR Canceled — stored in `note` (never the deposit/withdraw comment). */
 export function portalRejectReason(row: {
   status: string;
   note?: string | null;
   comment?: string | null;
 }): string {
   const s = String(row.status || '').toUpperCase();
-  if (s !== 'FAILED' && s !== 'REJECTED') return '';
+  if (s !== 'FAILED' && s !== 'REJECTED' && s !== 'CANCELED' && s !== 'CANCELLED') {
+    return '';
+  }
   const note = String(row.note || '').trim();
   const comment = String(row.comment || '').trim();
   // Ignore legacy rows where note was a copy of the comment

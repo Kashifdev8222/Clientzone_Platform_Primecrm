@@ -24,9 +24,17 @@ export class ResetPasswordDto {
 }
 
 export class ChangePasswordDto {
+  /** Nest / Postman field */
+  @IsOptional()
   @IsString()
   @MinLength(1)
-  currentPassword!: string;
+  currentPassword?: string;
+
+  /** ClientZone portal sends current password as `password` */
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  password?: string;
 
   @IsString()
   @MinLength(6)

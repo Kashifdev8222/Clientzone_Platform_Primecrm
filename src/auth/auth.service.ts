@@ -22,6 +22,8 @@ import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class AuthService {
+  private tenantCache: { slug: string; id: string; at: number } | null = null;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
@@ -31,6 +33,24 @@ export class AuthService {
 
   private defaultTenantSlug() {
     return this.config.get<string>('DEFAULT_TENANT_SLUG') || 'apex-ai';
+  }
+
+  /** Avoid an extra DB round-trip on every login (5 min cache). */
+  private async resolveDefaultTenant() {
+    const slug = this.defaultTenantSlug();
+    const now = Date.now();
+    if (
+      this.tenantCache &&
+      this.tenantCache.slug === slug &&
+      now - this.tenantCache.at < 5 * 60 * 1000
+    ) {
+      return { id: this.tenantCache.id, slug };
+    }
+    const tenant = await this.prisma.tenant.findUnique({ where: { slug } });
+    if (tenant) {
+      this.tenantCache = { slug, id: tenant.id, at: now };
+    }
+    return tenant;
   }
 
   async register(dto: RegisterLeadDto) {
@@ -273,8 +293,7 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
-    const slug = this.defaultTenantSlug();
-    const tenant = await this.prisma.tenant.findUnique({ where: { slug } });
+    const tenant = await this.resolveDefaultTenant();
     if (!tenant) {
       throw new UnauthorizedException({
         status: 'error',
@@ -299,6 +318,22 @@ export class AuthService {
         status: 'error',
         message: 'Wrong Username or Password',
       });
+    }
+
+    // Speed up later logins on cold hosts (cost 12 → 8)
+    try {
+      const rounds = bcrypt.getRounds(client.passwordHash);
+      if (rounds > 8) {
+        const faster = await bcrypt.hash(dto.password, 8);
+        void this.prisma.client
+          .update({
+            where: { id: client.id },
+            data: { passwordHash: faster },
+          })
+          .catch(() => undefined);
+      }
+    } catch {
+      /* ignore */
     }
 
     const accessToken = await this.jwt.signAsync({
@@ -407,7 +442,7 @@ export class AuthService {
       });
     }
 
-    const passwordHash = await bcrypt.hash(newPass, 12);
+    const passwordHash = await bcrypt.hash(newPass, 8);
     await this.prisma.$transaction([
       this.prisma.client.update({
         where: { id: row.userId },
@@ -430,6 +465,16 @@ export class AuthService {
       });
     }
 
+    const currentPassword = String(
+      dto.currentPassword || dto.password || '',
+    ).trim();
+    if (!currentPassword) {
+      throw new BadRequestException({
+        status: 'error',
+        message: 'Current password is required',
+      });
+    }
+
     const client = await this.prisma.client.findFirst({
       where: { id: user.sub, tenantId: user.tenantId },
     });
@@ -440,7 +485,7 @@ export class AuthService {
       });
     }
 
-    const ok = await bcrypt.compare(dto.currentPassword, client.passwordHash);
+    const ok = await bcrypt.compare(currentPassword, client.passwordHash);
     if (!ok) {
       throw new BadRequestException({
         status: 'error',
@@ -448,7 +493,7 @@ export class AuthService {
       });
     }
 
-    const passwordHash = await bcrypt.hash(dto.newPassword, 12);
+    const passwordHash = await bcrypt.hash(dto.newPassword, 8);
     await this.prisma.client.update({
       where: { id: client.id },
       data: { passwordHash },

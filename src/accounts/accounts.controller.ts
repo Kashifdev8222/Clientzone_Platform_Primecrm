@@ -1,14 +1,15 @@
-import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
-import { IsString, MinLength } from 'class-validator';
+import { Body, Controller, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
+import { IsOptional, IsString, MinLength } from 'class-validator';
 import { AccountsService } from './accounts.service';
 import { ClientJwtGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { JwtPayload } from '../common/types/jwt-payload';
 
 class RenameAccountDto {
+  @IsOptional()
   @IsString()
   @MinLength(1)
-  name!: string;
+  name?: string;
 }
 
 @Controller('api/v1/clientzone/lead')
@@ -26,7 +27,9 @@ export class AccountsController {
     @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
     @Body() dto: RenameAccountDto,
+    @Query('name') nameQuery?: string,
   ) {
-    return this.accounts.rename(user, id, dto.name);
+    const name = (dto?.name || nameQuery || '').trim();
+    return this.accounts.rename(user, id, name);
   }
 }

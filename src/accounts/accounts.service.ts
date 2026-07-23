@@ -29,6 +29,8 @@ export class AccountsService {
       freeMargin: Number(a.freeMargin),
       isDemoAccount: a.isDemoAccount,
       externalLogin: a.externalLogin,
+      // Portal (PHP ClientZone) uses tpNumber in dropdowns
+      tpNumber: a.externalLogin || a.id,
       createdAt: a.createdAt,
     }));
 

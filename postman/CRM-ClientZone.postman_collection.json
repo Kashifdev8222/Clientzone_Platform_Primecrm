@@ -11,7 +11,8 @@
     { "key": "resetToken", "value": "" },
     { "key": "depositId", "value": "" },
     { "key": "sourceId", "value": "" },
-    { "key": "withdrawId", "value": "" }
+    { "key": "withdrawId", "value": "" },
+    { "key": "documentId", "value": "" }
   ],
   "item": [
     {
@@ -342,6 +343,57 @@
               "raw": "{\n  \"status\": \"Canceled\"\n}"
             },
             "url": "{{baseUrl}}/api/v1/clientzone/lead/account/transactions/{{withdrawId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. KYC (Phase 2D)",
+      "item": [
+        {
+          "name": "5.1 Upload document (multipart)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.id) pm.collectionVariables.set('documentId', j.data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{clientToken}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Select a jpg/png/pdf in Postman"
+                },
+                {
+                  "key": "document",
+                  "type": "text",
+                  "value": "{\"documentType\":\"Passport\",\"description\":\"Passport photo page\"}"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/v1/clientzone/documents",
+            "description": "Body type form-data. Choose a real file for key=file"
+          }
+        },
+        {
+          "name": "5.2 List my documents",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{clientToken}}" }],
+            "url": "{{baseUrl}}/api/v1/clientzone/documents/all"
           }
         }
       ]

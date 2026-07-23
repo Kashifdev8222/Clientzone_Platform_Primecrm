@@ -10,12 +10,15 @@ import { AdminModule } from './admin/admin.module';
 import { MailModule } from './mail/mail.module';
 import { PaymentsModule } from './payments/payments.module';
 import { WithdrawModule } from './withdraw/withdraw.module';
+import { StorageModule } from './storage/storage.module';
+import { KycModule } from './kyc/kyc.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
     MailModule,
+    StorageModule,
     AuthModule,
     LeadsModule,
     AccountsModule,
@@ -23,6 +26,7 @@ import { WithdrawModule } from './withdraw/withdraw.module';
     AdminModule,
     PaymentsModule,
     WithdrawModule,
+    KycModule,
   ],
   controllers: [HealthController],
 })

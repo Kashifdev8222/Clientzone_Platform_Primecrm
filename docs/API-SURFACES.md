@@ -46,6 +46,8 @@ Admin panel   ──► /api/v1/admin/*       ──► NestJS ──► Supabas
 | POST | `/clientzone/transaction-source/create` | Bearer client |
 | PATCH | `/clientzone/transaction-source/edit/:id` | Bearer client |
 | DELETE | `/clientzone/transaction-source/delete/:id` | Bearer client |
+| POST | `/clientzone/documents` | Bearer client (multipart) |
+| GET | `/clientzone/documents/all` | Bearer client |
 
 ### Admin
 
@@ -61,6 +63,8 @@ Admin panel   ──► /api/v1/admin/*       ──► NestJS ──► Supabas
 | PATCH | `/admin/deposits/:id/status` | Bearer staff |
 | GET | `/admin/withdrawals` | Bearer staff |
 | PATCH | `/admin/withdrawals/:id/status` | Bearer staff |
+| GET | `/admin/documents` | Bearer staff |
+| PATCH | `/admin/documents/:id/review` | Bearer staff |
 
 ## Build order (full CRM)
 
@@ -68,6 +72,6 @@ Admin panel   ──► /api/v1/admin/*       ──► NestJS ──► Supabas
 2. Accounts / transactions read ✅
 3. Deposits + mock reconcile ✅
 4. Withdraw + sources ✅
-5. KYC documents (client upload, admin review)
+5. KYC documents ✅
 6. Tickets + meetings (client + admin desk)
 7. Admin panel UI (Next.js)

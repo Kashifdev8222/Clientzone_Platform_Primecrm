@@ -9,6 +9,7 @@
     { "key": "staffToken", "value": "" },
     { "key": "depositId", "value": "" },
     { "key": "withdrawId", "value": "" },
+    { "key": "documentId", "value": "" },
     { "key": "clientId", "value": "" }
   ],
   "item": [
@@ -230,6 +231,68 @@
               "raw": "{\n  \"status\": \"FAILED\",\n  \"note\": \"Rejected by finance\"\n}"
             },
             "url": "{{baseUrl}}/api/v1/admin/withdrawals/{{withdrawId}}/status"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. KYC (Phase 2D)",
+      "item": [
+        {
+          "name": "5.1 List pending documents",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.[0]?.id) pm.collectionVariables.set('documentId', j.data[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{staffToken}}" }],
+            "url": "{{baseUrl}}/api/v1/admin/documents?status=PENDING"
+          }
+        },
+        {
+          "name": "5.2 List all documents",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{staffToken}}" }],
+            "url": "{{baseUrl}}/api/v1/admin/documents"
+          }
+        },
+        {
+          "name": "5.3 Approve document",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{staffToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"APPROVED\",\n  \"reviewNote\": \"Looks good\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/admin/documents/{{documentId}}/review"
+          }
+        },
+        {
+          "name": "5.4 Reject document",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{staffToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"REJECTED\",\n  \"reviewNote\": \"Blurry image, please re-upload\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/admin/documents/{{documentId}}/review"
           }
         }
       ]

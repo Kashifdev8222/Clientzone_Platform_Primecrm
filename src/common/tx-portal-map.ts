@@ -29,19 +29,29 @@ export function portalComment(row: {
   note?: string | null;
   paymentMethod?: string | null;
   payCurrency?: string | null;
+  status?: string;
 }): string {
   const c = String(row.comment || '').trim();
   if (c) return c;
-  const n = String(row.note || '').trim();
-  if (n) return n;
+  // Do not fall back to note when rejected — note is rejection reason
+  const st = String(row.status || '').toUpperCase();
+  if (st === 'FAILED' || st === 'REJECTED') {
+    if (row.paymentMethod && row.payCurrency) {
+      return `${row.paymentMethod} ${row.payCurrency}`;
+    }
+    return row.paymentMethod ? String(row.paymentMethod) : '';
+  }
+  // Prefer payment method over note for deposits (note may be legacy copy)
   if (row.paymentMethod && row.payCurrency) {
     return `${row.paymentMethod} ${row.payCurrency}`;
   }
   if (row.paymentMethod) return String(row.paymentMethod);
+  const n = String(row.note || '').trim();
+  if (n) return n;
   return '';
 }
 
-/** Rejection reason only when rejected/failed (or note left after reject). */
+/** Rejection reason only when rejected — uses `note` (never the deposit/withdraw comment). */
 export function portalRejectReason(row: {
   status: string;
   note?: string | null;
@@ -50,8 +60,10 @@ export function portalRejectReason(row: {
   const s = String(row.status || '').toUpperCase();
   if (s !== 'FAILED' && s !== 'REJECTED') return '';
   const note = String(row.note || '').trim();
-  if (note) return note;
-  return '';
+  const comment = String(row.comment || '').trim();
+  // Ignore legacy rows where note was a copy of the comment
+  if (!note || (comment && note === comment)) return '';
+  return note;
 }
 
 export function mapPortalTransaction(t: {

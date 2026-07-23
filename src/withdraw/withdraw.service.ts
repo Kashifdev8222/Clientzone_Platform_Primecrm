@@ -198,7 +198,7 @@ export class WithdrawService {
           currency,
           paymentMethod: 'Withdraw',
           comment: dto.comment || 'Withdraw Performed',
-          note: dto.comment || 'Withdraw Performed',
+          note: null,
           transactionSourceId: dto.transactionSourceId || null,
           tpNumber: dto.tpNumber || null,
           meta: { held: true },
@@ -355,19 +355,18 @@ export class WithdrawService {
       });
     }
 
-    const noteText = dto.note?.trim() || tx.note;
-    const commentText =
-      status === 'FAILED'
-        ? dto.note?.trim() || tx.comment || 'Rejected by admin'
-        : tx.comment;
-
     const updated = await this.prisma.$transaction(async (db) => {
       const row = await db.transaction.update({
         where: { id: tx.id },
         data: {
           status,
-          note: noteText,
-          comment: commentText,
+          ...(status === 'FAILED'
+            ? { note: dto.note?.trim() || 'Rejected by admin' }
+            : status === 'COMPLETED' || status === 'PENDING' || status === 'PROCESSING'
+              ? { note: null }
+              : dto.note?.trim()
+                ? { note: dto.note.trim() }
+                : {}),
         },
       });
 

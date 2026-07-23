@@ -109,8 +109,8 @@ export class PaymentsService {
         network: dto.network || null,
         invoiceAddress,
         redirectUrl,
-        note: `Crypto deposit ${payCurrency}`,
         comment: `CryptoPay ${payCurrency}${dto.network ? ` (${dto.network})` : ''}`,
+        note: null,
         meta: {
           mode: 'mock',
           payCurrency,
@@ -176,8 +176,8 @@ export class PaymentsService {
         externalRef,
         priceCurrency: currency,
         redirectUrl,
-        note: dto.description,
         comment: dto.description || 'LemuxionPay deposit',
+        note: null,
         meta: {
           mode: 'mock',
           street: dto.street,
@@ -276,19 +276,27 @@ export class PaymentsService {
       return { status: 'success', message: 'Already completed', data: { id: tx.id } };
     }
 
-    const noteText = dto.note?.trim() || tx.note;
-    const commentText =
+    const noteText =
       status === 'FAILED'
-        ? dto.note?.trim() || tx.comment || 'Rejected by admin'
-        : tx.comment;
+        ? dto.note?.trim() || 'Rejected by admin'
+        : status === 'COMPLETED' || status === 'PENDING' || status === 'PROCESSING'
+          ? null
+          : dto.note?.trim() || tx.note;
 
     const updated = await this.prisma.$transaction(async (db) => {
       const row = await db.transaction.update({
         where: { id: tx.id },
         data: {
           status,
-          note: noteText,
-          comment: commentText,
+          // comment = client-facing deposit/withdraw text (never overwrite on reject)
+          // note = rejection reason only when FAILED
+          ...(status === 'FAILED'
+            ? { note: noteText }
+            : status === 'COMPLETED' || status === 'PENDING' || status === 'PROCESSING'
+              ? { note: null }
+              : dto.note?.trim()
+                ? { note: dto.note.trim() }
+                : {}),
         },
       });
 

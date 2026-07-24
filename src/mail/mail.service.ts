@@ -26,7 +26,7 @@ export class MailService {
 
     const from =
       this.config.get<string>('MAIL_FROM')?.trim() ||
-      'Apex CRM <onboarding@resend.dev>';
+      'TradeScope AI <onboarding@resend.dev>';
 
     const resetBase =
       this.config.get<string>('CLIENTZONE_RESET_URL')?.trim() ||
